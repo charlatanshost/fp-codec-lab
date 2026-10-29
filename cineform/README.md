@@ -33,6 +33,11 @@ python3 tools/emu_count.py build/fp2cfhd_arm -q 4 frame.DNG   # emulated instruc
 
 The SDK's own build needs cmake and libuuid; `build.sh` needs neither.
 
+Why sse2neon and not the SDK's plain-C path: the SDK has a non-SIMD switch (`_XMMOPT=0`), but
+it has bitrotted. Building with it fails with 46 compile errors in `Codec/convert.c`,
+`Codec/spatial.c` and `Codec/temporal.c`, so there is no portable C fallback to start an ARM port
+from. Translating the SSE2 intrinsics was the shortest working route. [C]
+
 ## Encoder mapping [C]
 
 How fp CinemaDNG data has to be fed to the CineForm encoder:
@@ -141,13 +146,21 @@ output. What the repo already knows:
   10-bit path has been verified. Raising the bitrate or shortening the GOP is plausible but
   untested. [I]
 
-## Next steps
+## Status: parked
+
+The goal of this project is new recording options **in the camera**, and the instruction counts
+above rule CineForm out for that. Work has moved to the hardware paths (LJ92, the `0x300C` video
+codec); see [../compression-options](../compression-options/README.md) and
+[../codec-driver-map](../codec-driver-map/README.md).
+
+The tools stay here because they work and are reproducible. If anyone wants to take the
+computer-side converter further, the open items are:
 
 1. **Decoder support.** Mux samples into a MOV and check DaVinci Resolve, Premiere and FFmpeg
-   decode CineForm *RAW* (Bayer) correctly, with the right colour. This decides whether the
-   converter is worth finishing.
+   decode CineForm *RAW* (Bayer) correctly, with the right colour.
 2. **Real footage.** Run `fp2cfhd` on detailed, high-ISO clips to get honest ratios.
 3. **Fix the white-point mapping** (clip returns ~10 DN low).
-4. **Read the CPU clock** once on the camera (`[0xC3033260]`, read-only) to pin the fps table.
-5. If an in-camera low-fps mode is still wanted: find the q6 sse2neon mismatch, then consider a
-   bare-metal port and on-camera timing.
+4. **The q6 ARM/x86 mismatch** (only matters for an ARM build).
+
+Reading the fp's CPU clock (`[0xC3033260]`, read-only) is still worth doing, but for the
+software-LJ92 estimate in [../compression-options](../compression-options/README.md), not for CineForm.

@@ -26,7 +26,7 @@ Add as many useful recording options as the fp's hardware allows:
 | Higher-bitrate / all-intra H.264 | Fields known; GOP=1 accepted by driver [C] | Hardware and SD limits [P] |
 | Bayer in H.264/HEVC (lossy raw) | Encoder input ring mapped [C] | Will the encoder take our own buffer, during cDNG recording? [P] |
 | Lossy JPEG DNG via `0x301B` | Notes only | Does the engine accept Bayer? [P] |
-| CineForm RAW in camera | **Ruled out**: 30–37 ARM instructions/pixel [C] | — (works as a computer-side converter) |
+| CineForm RAW in camera | **Ruled out, parked**: 30–37 ARM instructions/pixel [C] | — (works as a computer-side converter) |
 
 ## Layout
 
@@ -86,7 +86,7 @@ On the camera (when available):
 1. HEVC: RAM-patch the mode to 8 for one short MOV, dump the output bitstream buffer, parse it on
    the computer.
 2. 10-bit + LJ92 on top of fpLossless.
-3. Read the CPU clock (`[0xC3033260]`, read-only) to pin the CineForm/LJ92 software estimates.
+3. Read the CPU clock (`[0xC3033260]`, read-only) to pin the software-LJ92 estimate.
 
 ## Log
 
