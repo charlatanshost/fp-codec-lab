@@ -92,3 +92,14 @@ On the camera (when available):
 
 - **2026-10-29** — CineForm evaluation (converter, A7 cost), compression landscape and LJ92
   budget, 10-bit ratio estimates, firmware unpack, codec driver map (modes, HEVC switch, buffers).
+  Published as a public repo under GPL-3.0.
+
+## License
+
+[GPL-3.0](LICENSE), the same licence as fpSup, so work here can move into fpSup later.
+
+Third-party code is used, not included: the CineForm SDK (Apache-2.0 or MIT, at your option)
+is built from your own checkout, and `cineform/tools/build.sh` downloads
+[sse2neon](https://github.com/DLTcollab/sse2neon) (MIT) at build time. No SIGMA firmware or
+decompiled firmware is distributed here. Analysing the firmware, and the legal questions that
+come with it where you live, is each user's own decision and responsibility, as fpSup's README says.
