@@ -1,0 +1,9 @@
+# Firmware images and anything derived from them stay out of this folder's history
+*.bin
+out/
+fw/
+decomp/
+# Build output and local environments
+build/
+venv/
+__pycache__/
