@@ -7,3 +7,5 @@ decomp/
 build/
 venv/
 __pycache__/
+# generated test fixtures
+selftest/

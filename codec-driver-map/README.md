@@ -61,8 +61,16 @@ camera must decode MOV for playback); that naming is not proven. Modes 2 and 3 a
 program a second stream from descriptor `+0x104..+0x158` (see §4), consistent with a
 dual-stream (main + proxy) or transcode mode.
 
-`C070D858` returns 5 only for specific size/rate pairs (examples: 3840×2160 and 2560×1440 at the
-2997 rate code, 1440×720, 854×480 and 640×480 at other codes); everything else is 0.
+`C070D858` returns 5 only for specific size/rate pairs; everything else is 0. The complete table is
+in [hevc-test](../hevc-test/README.md) — it is larger than it first looked, and two entries decide
+how any HEVC test must be set up: **UHD is mode 5 at every rate the fp offers**, and **FHD is mode 5
+at 29.97 and 119.88**. Only the other FHD rates are mode 0. Since 8 mirrors mode 0 and 10 mirrors
+mode 5, picking the wrong rate pairs HEVC with the wrong level tables. [C]
+
+**Caution on the call chain above:** `C0725690` reaches the mode by two routes, and the wrapper is
+only one of them. When SDK param `+0x68 == 1` it branches to `C0725698` and forces 0 **without ever
+calling `C0709158`**, so a patch to the wrapper alone can silently never run. See
+[hevc-test](../hevc-test/README.md). [C]
 
 ## 3. Register map by function
 
@@ -95,7 +103,7 @@ write is [P].
 
 | Feature | Driver-level change | Unknowns that decide it |
 |---|---|---|
-| HEVC recording | make `C0709158` return 8 (or 10) | Does the 192 KiB control image actually encode HEVC? [P] The muxer writes only `avc1`/`avcC` (`C071F3E8`/`C071FCD8`): needs `hvc1`/`hvcC`, and the SPS/PPS extraction must handle HEVC NAL headers. |
+| HEVC recording | patch **both** routes to the mode (`C0725694` and `C0725698`), not just `C0709158` | **Tested 2026-10-30: the patch lands and recording fails at finalise.** The muxer is the blocker and it is worse than "needs `hvc1`": the firmware contains **no** HEVC box types anywhere (`hvc1`/`hev1`/`hvcC` all absent), and `C071FCD8` builds an `AVCDecoderConfigurationRecord`, whose layout `hvcC` does not share. Needs a new builder. Whether the encoder emits HEVC at all is still [P]. See [hevc-test](../hevc-test/README.md). |
 | Higher bitrate / all-intra H.264 | descriptor bitrate and GOP fields (`C070B7A0`; GOP=1 accepted in the 10-24 audit) | Real limits of the hardware and of SD write speed [P] |
 | Bayer in H.264/HEVC | write a tiled 8-bit Bayer image (+ flat chroma) into the input ring slots, or point the ring base at an own buffer | Timing/ownership against the ISP writer, and running the codec during CinemaDNG recording [P] |
 
@@ -108,9 +116,12 @@ Offline:
 3. Trace who writes the input ring slots per frame (ISP writer vs encoder fetch), for Bayer
    injection.
 
-On the camera (first experiment, read-only output): RAM-patch the mode to 8 for one short MOV,
-dump the output bitstream buffer (`desc+0x44`) over the USB shell, and check it with a standard
-HEVC parser on the computer. Pass = a parseable VPS/SPS/PPS and a decodable frame.
+On the camera — **done for mode 8, see [hevc-test](../hevc-test/README.md)**; the remaining step is
+to read the output bitstream buffer **while recording**, since the failure is at finalise and the
+codec is open and producing until then. `0x300C0110`/`0x300C0114` give the buffer address live
+(`C070AC88` packs bits 16..28 and 0..15 of `(addr − 0x40000000) >> 3`), and `C2F30040` says which
+mode the codec actually opened with. Patching from the card's AutoRun rather than over USB avoids
+the stale instruction-cache risk entirely. Pass = a parseable VPS/SPS/PPS and a decodable frame.
 
 ## Tools
 
